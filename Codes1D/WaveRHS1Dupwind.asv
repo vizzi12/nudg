@@ -1,0 +1,56 @@
+function [rhsu,rhsv] = WaveRHS1Dupwind(u,v,time)
+
+% function [rhsu] = AdvecRHS1D(u,time)
+% Purpose  : Evaluate RHS flux in 1D advection
+
+Globals1D;
+
+% form field differences at faces
+du = zeros(Nfp*Nfaces,K); 
+% du(:) = nx(:).*(v(vmapM)-(0.5*(v(vmapM)+v(vmapP))-0.5*nx(:).*(u(vmapP)-u(vmapM))     ));
+
+dv = zeros(Nfp*Nfaces,K); 
+% dv(:) = nx(:).*(u(vmapM)-(0.5*(u(vmapM)+u(vmapP))-0.5*nx(:).*(v(vmapP)-v(vmapM))     ));
+
+df = u(vmapM)-u(vmapP); dg = v(vmapM)-v(vmapP);
+du = zeros(Nfp*Nfaces,K); du(:) = 0.5*nx(:).*dg-0.5*df;
+dv = zeros(Nfp*Nfaces,K); dv(:) = 0.5*nx(:).*dg-0.5*df;
+
+% impose boundary condition at x=0
+uin = cos(-pi+time)+sin(-pi-time);
+uout = cos(pi+time)+sin(pi-time);
+vin = -cos(-pi+time)+sin(-pi-time);
+vout = -cos(pi+time)+sin(pi-time);
+
+usl=0.5*(uin+vin-v(vmapI)+u(vmapI));
+vsl=0.5*(uin+vin+v(vmapI)-u(vmapI));
+
+usr=0.5*(v(vmapO)+u(vmapO)-vout+uout);
+vsr=0.5*(vout-uout+u(vmapO)+v(vmapO));
+
+%left
+uM = u(vmapI); vM = v(vmapI);
+uP = uin; vP = vin;
+us = 0.5*( uP + vP - vM + uM ); vs = 0.5*( uP + vP + vM - uM );
+du(mapI) = 0.5*nx(mapI)*(vM-vs)-0.5*(uM-us);
+dv(mapI) = 0.5*nx(mapI)*(uM-us)-0.5*(vM-vs);
+
+% Impose right outer boundary
+uM = u(vmapO); vM = v(vmapO);
+uP = uout; vP = vout;
+us = 0.5*( uM + vM - vP + uP ); vs = 0.5*( vP - uP + uM + vM );
+du(mapO) = 0.5*nx(mapO)*(vM-vs)-0.5*(uM-us);
+dv(mapO) = 0.5*nx(mapO)*(uM-us)-0.5*(vM-vs);
+
+
+% du (mapI) =  nx(mapI).*(v(vmapI)-(0.5*(v(vmapI)+vsl)-0.5*nx(mapI).*(usl-u(vmapI))     ));
+% du (mapO) = nx(mapO).*(v(vmapO)-(0.5*(v(vmapO)+vsr)-0.5*nx(mapO).*(usr-u(vmapO))     ));
+% 
+% dv (mapI) =  nx(mapI).*(u(vmapI)-(0.5*(u(vmapI)+usl)-0.5*nx(mapI).*(vsl-v(vmapI))     ));
+% dv (mapO) = nx(mapO).*(u(vmapO)-(0.5*(u(vmapO)+usr)-0.5*nx(mapO).*(vsr-v(vmapO))     ));
+
+
+% compute right hand sides of the semi-discrete PDE
+rhsu = -rx.*(Dr*v) + LIFT*(Fscale.*(du));
+rhsv = -rx.*(Dr*u) + LIFT*(Fscale.*(dv));
+return
